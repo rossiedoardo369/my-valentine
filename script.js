@@ -39,18 +39,29 @@ const musicToggle = document.getElementById('music-toggle')
 
 music.volume = 0.3
 
+// Tentativo autoplay silenzioso all'avvio
+music.muted = true
+music.play().then(() => {
+    music.muted = false
+    musicPlaying = true
+    musicStarted = true
+    musicToggle.textContent = '🔊'
+}).catch(() => {
+    // Autoplay bloccato: la musica partirà al primo click
+})
+
 // ─── MUSICA ──────────────────────────────────────────────────────────────────
 
 function startMusic() {
     if (musicStarted) return
     musicStarted = true
+    music.muted = false
     music.play()
         .then(() => {
             musicPlaying = true
             musicToggle.textContent = '🔊'
         })
         .catch(() => {
-            // Browser ha bloccato: riprova al prossimo click
             musicStarted = false
         })
 }
