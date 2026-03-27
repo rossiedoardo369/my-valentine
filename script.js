@@ -29,28 +29,23 @@ const yesTeasePokes = [
 ]
 
 let yesTeasedCount = 0
-
 let noClickCount = 0
 let runawayEnabled = false
-let musicPlaying = true
+let musicPlaying = false
 
 const catGif = document.getElementById('cat-gif')
 const yesBtn = document.getElementById('yes-btn')
 const noBtn = document.getElementById('no-btn')
 const music = document.getElementById('bg-music')
 
-// Autoplay: audio starts muted (bypasses browser policy), unmute immediately
-music.muted = true
+// Avvia musica al primo click (unico modo affidabile cross-browser)
 music.volume = 0.3
-music.play().then(() => {
-    music.muted = false
-}).catch(() => {
-    // Fallback: unmute on first interaction
-    document.addEventListener('click', () => {
-        music.muted = false
-        music.play().catch(() => {})
-    }, { once: true })
-})
+document.addEventListener('click', () => {
+    music.play().then(() => {
+        musicPlaying = true
+        document.getElementById('music-toggle').textContent = '🔊'
+    }).catch(() => {})
+}, { once: true })
 
 function toggleMusic() {
     if (musicPlaying) {
@@ -58,7 +53,6 @@ function toggleMusic() {
         musicPlaying = false
         document.getElementById('music-toggle').textContent = '🔇'
     } else {
-        music.muted = false
         music.play()
         musicPlaying = true
         document.getElementById('music-toggle').textContent = '🔊'
@@ -66,14 +60,66 @@ function toggleMusic() {
 }
 
 function handleYesClick() {
-    if (!runawayEnabled) {
-        // Tease her to try No first
-        const msg = yesTeasePokes[Math.min(yesTeasedCount, yesTeasePokes.length - 1)]
+    if (!runawayEnabled && yesTeasedCount < yesTeasePokes.length) {
+        const msg = yesTeasePokes[yesTeasedCount]
         yesTeasedCount++
         showTeaseMessage(msg)
         return
     }
-    window.location.href = 'yes.html'
+    showYesPage()
+}
+
+function showYesPage() {
+    const container = document.querySelector('.container')
+    container.style.transition = 'opacity 0.5s ease'
+    container.style.opacity = '0'
+
+    setTimeout(() => {
+        document.title = 'Yay! 🎉'
+        container.innerHTML = `
+            <h1 class="yes-title">Knew you would say yes! 🎉</h1>
+            <div class="gif-container">
+                <img id="cat-gif" src="https://media.tenor.com/eNHbizSfVb0AAAAj/lovemode-cute.gif" alt="celebrating">
+            </div>
+            <p class="yes-message">You just made me the happiest person! 💕</p>
+        `
+        container.classList.add('yes-container')
+        container.style.opacity = '1'
+        launchConfetti()
+    }, 500)
+}
+
+function launchConfetti() {
+    if (typeof confetti === 'undefined') {
+        const script = document.createElement('script')
+        script.src = 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js'
+        script.onload = startConfetti
+        document.head.appendChild(script)
+    } else {
+        startConfetti()
+    }
+}
+
+function startConfetti() {
+    const colors = ['#ff69b4', '#ff1493', '#ff85a2', '#ffb3c1', '#ff0000', '#ff6347', '#fff', '#ffdf00']
+    const duration = 6000
+    const end = Date.now() + duration
+
+    confetti({
+        particleCount: 150,
+        spread: 100,
+        origin: { x: 0.5, y: 0.3 },
+        colors
+    })
+
+    const interval = setInterval(() => {
+        if (Date.now() > end) {
+            clearInterval(interval)
+            return
+        }
+        confetti({ particleCount: 40, angle: 60, spread: 55, origin: { x: 0, y: 0.6 }, colors })
+        confetti({ particleCount: 40, angle: 120, spread: 55, origin: { x: 1, y: 0.6 }, colors })
+    }, 300)
 }
 
 function showTeaseMessage(msg) {
@@ -87,28 +133,23 @@ function showTeaseMessage(msg) {
 function handleNoClick() {
     noClickCount++
 
-    // Cycle through guilt-trip messages
     const msgIndex = Math.min(noClickCount, noMessages.length - 1)
     noBtn.textContent = noMessages[msgIndex]
 
-    // Grow the Yes button bigger each time
     const currentSize = parseFloat(window.getComputedStyle(yesBtn).fontSize)
     yesBtn.style.fontSize = `${currentSize * 1.35}px`
     const padY = Math.min(18 + noClickCount * 5, 60)
     const padX = Math.min(45 + noClickCount * 10, 120)
     yesBtn.style.padding = `${padY}px ${padX}px`
 
-    // Shrink No button to contrast
     if (noClickCount >= 2) {
         const noSize = parseFloat(window.getComputedStyle(noBtn).fontSize)
         noBtn.style.fontSize = `${Math.max(noSize * 0.85, 10)}px`
     }
 
-    // Swap cat GIF through stages
     const gifIndex = Math.min(noClickCount, gifStages.length - 1)
     swapGif(gifStages[gifIndex])
 
-    // Runaway starts at click 5
     if (noClickCount >= 8 && !runawayEnabled) {
         enableRunaway()
         runawayEnabled = true
