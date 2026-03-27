@@ -204,3 +204,7 @@ h1 {
     width: 260px;
     height: 260px;
 }
+
+.yes-container h1 {
+    animation: none;
+}
